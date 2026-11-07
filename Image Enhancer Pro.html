@@ -1,0 +1,168 @@
+<!DOCTYPE html>
+<html lang="en"><head><meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1, viewport-fit=cover">
+<title>Image Enhancer Pro</title>
+<style>
+:root{--bg:#f4f5f8;--card:#fff;--tx:#161a23;--mut:#667085;--ac:#5b5bf0;--bd:#e3e6ee;--ok:#12a36b;--wa:#e08a00;box-sizing:border-box;padding-top:env(safe-area-inset-top,0px);padding-bottom:env(safe-area-inset-bottom,0px)}
+@media(prefers-color-scheme:dark){:root:not([data-theme=light]){--bg:#0f1117;--card:#181b24;--tx:#eef0f6;--mut:#99a0b2;--bd:#2a2f3d;--ac:#8484ff}}
+*{box-sizing:border-box}body{margin:0;background:var(--bg);color:var(--tx);font:15px/1.5 system-ui,-apple-system,Segoe UI,Roboto,sans-serif}
+header{padding:18px 20px 6px;max-width:1200px;margin:auto}h1{margin:0;font-size:22px}header p{margin:2px 0 0;color:var(--mut)}
+main{max-width:1200px;margin:auto;padding:12px 20px 40px;display:grid;grid-template-columns:minmax(0,1.6fr) minmax(0,1fr);gap:16px}
+@media(max-width:860px){main{grid-template-columns:1fr}}
+.card{background:var(--card);border:1px solid var(--bd);border-radius:14px;padding:16px;margin-bottom:16px}
+h2{font-size:15px;margin:0 0 10px}
+.drop{border:2px dashed var(--bd);border-radius:14px;padding:44px 16px;text-align:center;color:var(--mut);cursor:pointer}
+.drop.on{border-color:var(--ac);color:var(--ac)}
+button{font:inherit;border:1px solid var(--bd);background:var(--card);color:var(--tx);padding:8px 13px;border-radius:9px;cursor:pointer}
+button.p{background:var(--ac);color:#fff;border-color:var(--ac)}button.sel{outline:2px solid var(--ac)}button:disabled{opacity:.4;cursor:default}
+.row{display:flex;gap:8px;flex-wrap:wrap;align-items:center;margin:8px 0}
+#cmp{position:relative;width:100%;overflow:hidden;border-radius:10px;background:repeating-conic-gradient(#8883 0 25%,transparent 0 50%) 0 0/16px 16px;touch-action:none;user-select:none;cursor:ew-resize}
+#cmp canvas{display:block;width:100%;height:auto}#aft{position:absolute;inset:0;width:100%;height:100%}
+#bar{position:absolute;top:0;bottom:0;width:3px;background:#fff;box-shadow:0 0 6px #0008;left:50%}
+#bar:after{content:"⇆";position:absolute;top:50%;left:50%;transform:translate(-50%,-50%);background:#fff;color:#222;border-radius:50%;width:32px;height:32px;display:grid;place-items:center}
+.tag{position:absolute;top:8px;padding:2px 9px;border-radius:99px;background:#000a;color:#fff;font-size:12px}
+.sl{display:grid;grid-template-columns:92px 1fr 40px;gap:8px;align-items:center;font-size:13px}.sl input{width:100%;accent-color:var(--ac)}.sl span:last-child{text-align:right;color:var(--mut)}
+.grid{display:grid;grid-template-columns:1fr 1fr;gap:8px}.m{background:var(--bg);border-radius:10px;padding:8px 10px}.m b{display:block;font-size:16px}.m small{color:var(--mut)}
+.score{font-size:34px;font-weight:700}.sw{display:inline-block;width:30px;height:30px;border-radius:8px;border:1px solid var(--bd);margin-right:4px}
+ul{padding-left:18px;margin:6px 0}li{margin:3px 0}.hist{display:grid;grid-template-columns:repeat(auto-fill,minmax(110px,1fr));gap:8px}
+.hist div{border:1px solid var(--bd);border-radius:10px;overflow:hidden;font-size:11px;color:var(--mut)}.hist img{width:100%;display:block}.hist div span{display:block;padding:4px 6px}
+select{font:inherit;padding:6px;border-radius:8px;border:1px solid var(--bd);background:var(--card);color:var(--tx)}
+#prog{height:6px;background:var(--bd);border-radius:9px;overflow:hidden;display:none}#prog i{display:block;height:100%;width:0;background:var(--ac);transition:width .2s}
+#modal{position:fixed;inset:0;background:#000d;display:none;place-items:center;z-index:9;padding:16px;overflow:auto}#modal img{max-width:100%;max-height:80vh}#modal p{color:#fff;text-align:center}
+</style></head><body>
+<header><h1>✨ Image Enhancer Pro</h1><p>Upload → full scan &amp; analysis → enhance up to 4K → compare before/after → save.</p></header>
+<main>
+<section>
+ <div class="card" id="up"><div class="drop" id="drop">📁 Click or drop an image here<br><small>JPG · PNG · WebP</small></div><input type="file" id="file" accept="image/*" hidden></div>
+ <div class="card" id="viewc" style="display:none">
+  <div class="row"><button id="vs" class="sel">Split</button><button id="vb">Before</button><button id="va">After</button><span id="info" style="color:var(--mut);font-size:13px;margin-left:auto"></span></div>
+  <div id="cmp"><canvas id="bef"></canvas><canvas id="aft"></canvas><div id="bar"></div><span class="tag" style="left:8px">Before</span><span class="tag" style="right:8px">After</span></div>
+ </div>
+ <div class="card" id="outc" style="display:none"><h2>Export &amp; save</h2>
+  <div class="row"><label>Size <select id="res"><option value="1">Original</option><option value="2">2× upscale</option><option value="4k" selected>4K ultra (3840 px)</option></select></label>
+  <label>Format <select id="fmt"><option value="image/png">PNG</option><option value="image/jpeg">JPEG</option><option value="image/webp">WebP</option></select></label>
+  <label><input type="checkbox" id="ultra" checked> Ultra detail</label></div>
+  <div id="prog"><i></i></div>
+  <div class="row"><button class="p" id="dl">⬇ Process &amp; download</button><button id="sv">💾 Save to local history</button><button id="pv">🔍 Preview full result</button></div>
+  <small style="color:var(--mut)" id="msg"></small>
+ </div>
+ <div class="card"><h2>Local history <small style="color:var(--mut)">(stored in this browser)</small></h2><div class="hist" id="hist"></div><div class="row"><button id="clr">Clear history</button></div></div>
+</section>
+<aside>
+ <div class="card" id="anc" style="display:none"><h2>🔬 Full scan analysis</h2><div id="prog2" style="height:6px"></div><div id="an"></div></div>
+ <div class="card" id="ctl" style="display:none"><h2>🎛 Enhance</h2>
+  <div class="row"><button class="p" id="auto">⚡ Auto enhance</button><button id="rst">Reset</button></div><div id="sls"></div></div>
+</aside>
+</main>
+<div id="modal"><div><p>Right-click / long-press the image to save it. Tap anywhere to close.</p><img id="mi"></div></div>
+<script>
+const $=id=>document.getElementById(id);
+const P0={bri:0,con:0,sat:0,warm:0,sharp:0,clar:0,dn:0};
+const LBL={bri:['Brightness',-50,50],con:['Contrast',-50,60],sat:['Saturation',-50,60],warm:['Warmth',-40,40],sharp:['Sharpness',0,100],clar:['Clarity',0,100],dn:['Denoise',0,100]};
+let img,P={...P0},A=null,name='image',pvW=0,pvH=0,srcPrev,t;
+const clamp=(v,a=0,b=255)=>v<a?a:v>b?b:v;
+function ls(k,v){try{if(v===undefined)return JSON.parse(localStorage.getItem(k));localStorage.setItem(k,JSON.stringify(v));return true}catch(e){return v===undefined?null:false}}
+// sliders
+$('sls').innerHTML=Object.entries(LBL).map(([k,[n,a,b]])=>`<div class="sl"><span>${n}</span><input type="range" id="s_${k}" min="${a}" max="${b}" value="0"><span id="v_${k}">0</span></div>`).join('');
+for(const k in LBL)$('s_'+k).oninput=e=>{P[k]=+e.target.value;$('v_'+k).textContent=P[k];sched()};
+function setP(o){P={...P0,...o};for(const k in LBL){$('s_'+k).value=P[k];$('v_'+k).textContent=P[k]}sched()}
+$('rst').onclick=()=>setP({});
+// upload
+$('drop').onclick=()=>$('file').click();
+$('drop').ondragover=e=>{e.preventDefault();$('drop').classList.add('on')};
+$('drop').ondragleave=()=>$('drop').classList.remove('on');
+$('drop').ondrop=e=>{e.preventDefault();$('drop').classList.remove('on');load(e.dataTransfer.files[0])};
+$('file').onchange=e=>load(e.target.files[0]);
+let fsize=0;
+function load(f){if(!f||!f.type.startsWith('image/'))return;name=f.name.replace(/\.[^.]+$/,'');fsize=f.size;
+ const im=new Image();im.onload=()=>{img=im;start()};im.src=URL.createObjectURL(f)}
+// pixel tools
+function blur(d,w,h,r){const o=new Uint8ClampedArray(d.length),t=new Float32Array(d.length);r=Math.max(1,Math.round(r));const n=2*r+1;
+ for(let y=0;y<h;y++)for(let c=0;c<3;c++){let s=0;const b=y*w*4+c;for(let x=-r;x<=r;x++)s+=d[b+clamp(x,0,w-1)*4];
+  for(let x=0;x<w;x++){t[b+x*4]=s/n;s+=d[b+Math.min(w-1,x+r+1)*4]-d[b+Math.max(0,x-r)*4]}}
+ for(let x=0;x<w;x++)for(let c=0;c<3;c++){let s=0;const b=x*4+c;for(let y=-r;y<=r;y++)s+=t[b+clamp(y,0,h-1)*w*4];
+  for(let y=0;y<h;y++){o[b+y*w*4]=s/n;s+=t[b+Math.min(h-1,y+r+1)*w*4]-t[b+Math.max(0,y-r)*w*4]}}
+ for(let i=3;i<o.length;i+=4)o[i]=255;return o}
+function render(w,h,p,ultra,scale){const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d',{willReadFrequently:true});
+ x.imageSmoothingEnabled=true;x.imageSmoothingQuality='high';x.drawImage(img,0,0,w,h);const id=x.getImageData(0,0,w,h),d=id.data;
+ if(p.dn>0){const b=blur(d,w,h,Math.max(1,scale*.8)),k=p.dn/100*.85;for(let i=0;i<d.length;i++)if(i%4!==3)d[i]=d[i]*(1-k)+b[i]*k}
+ const f=(259*(p.con+255))/(255*(259-p.con)),ad=p.bri*2.55,s=1+p.sat/100,wm=p.warm*.6;
+ for(let i=0;i<d.length;i+=4){let r=f*(d[i]+ad-128)+128+wm,g=f*(d[i+1]+ad-128)+128,b=f*(d[i+2]+ad-128)+128-wm;const y=.299*r+.587*g+.114*b;
+  d[i]=clamp(y+(r-y)*s);d[i+1]=clamp(y+(g-y)*s);d[i+2]=clamp(y+(b-y)*s)}
+ const us=(rad,amt)=>{const b=blur(d,w,h,rad);for(let i=0;i<d.length;i++)if(i%4!==3)d[i]=clamp(d[i]+(d[i]-b[i])*amt)};
+ if(p.sharp>0)us(Math.max(1,scale*.9),p.sharp/40);
+ if(p.clar>0)us(Math.max(6,Math.min(w,h)/60),p.clar/120);
+ if(ultra&&scale>1)us(Math.max(1,scale*.6),.5);
+ x.putImageData(id,0,0);return c}
+// preview
+function start(){const m=Math.min(1100,img.naturalWidth);pvW=Math.round(m);pvH=Math.round(img.naturalHeight*m/img.naturalWidth);
+ for(const i of['viewc','outc','anc','ctl'])$(i).style.display='block';
+ const b=$('bef');b.width=pvW;b.height=pvH;const x=b.getContext('2d');x.imageSmoothingQuality='high';x.drawImage(img,0,0,pvW,pvH);
+ $('info').textContent=`${img.naturalWidth}×${img.naturalHeight}px`;setPos(50);P={...P0};setP({});scan()}
+function sched(){clearTimeout(t);t=setTimeout(draw,60)}
+function draw(){if(!img)return;const c=render(pvW,pvH,P,false,Math.max(1,pvW/img.naturalWidth));const a=$('aft');a.width=pvW;a.height=pvH;a.getContext('2d').drawImage(c,0,0)}
+// compare
+let mode='s',pos=50;
+function setPos(v){pos=clamp(v,0,100);$('bar').style.left=pos+'%';$('aft').style.clipPath=mode==='b'?'inset(0 0 0 100%)':mode==='a'?'none':`inset(0 0 0 ${pos}%)`;$('bar').style.display=mode==='s'?'block':'none'}
+function setMode(m){mode=m;for(const[k,i]of[['s','vs'],['b','vb'],['a','va']])$(i).classList.toggle('sel',k===m);setPos(pos)}
+$('vs').onclick=()=>setMode('s');$('vb').onclick=()=>setMode('b');$('va').onclick=()=>setMode('a');
+let dr=false;const mv=e=>{if(!dr)return;const r=$('cmp').getBoundingClientRect();setPos((e.clientX-r.left)/r.width*100)};
+$('cmp').onpointerdown=e=>{dr=true;mv(e)};addEventListener('pointermove',mv);addEventListener('pointerup',()=>dr=false);
+// analysis
+function scan(){const pr=$('prog2');pr.innerHTML='<div id="prog" style="display:block"><i style="width:10%"></i></div>';
+ setTimeout(()=>{const s=Math.min(480,img.naturalWidth),w=Math.round(s),h=Math.round(img.naturalHeight*s/img.naturalWidth);
+  const c=document.createElement('canvas');c.width=w;c.height=h;const x=c.getContext('2d');x.drawImage(img,0,0,w,h);const d=x.getImageData(0,0,w,h).data;
+  const n=w*h,hist=new Array(256).fill(0),L=new Float32Array(n),q={};let sum=0,sat=0,sh=0,hi=0;
+  for(let i=0,j=0;i<d.length;i+=4,j++){const r=d[i],g=d[i+1],b=d[i+2],y=.299*r+.587*g+.114*b;L[j]=y;sum+=y;hist[Math.round(y)]++;
+   const mx=Math.max(r,g,b),mn=Math.min(r,g,b);sat+=mx?(mx-mn)/mx:0;if(y<20)sh++;if(y>240)hi++;const k=(r>>5)+','+(g>>5)+','+(b>>5);q[k]=(q[k]||0)+1}
+  const mean=sum/n;let v=0;for(let j=0;j<n;j++)v+=(L[j]-mean)**2;const std=Math.sqrt(v/n);
+  let lap=0,noi=0,cnt=0;for(let yy=1;yy<h-1;yy++)for(let xx=1;xx<w-1;xx++){const j=yy*w+xx,l=4*L[j]-L[j-1]-L[j+1]-L[j-w]-L[j+w];lap+=l*l;
+   const a=(L[j-1]+L[j+1]+L[j-w]+L[j+w])/4;if(Math.abs(L[j]-a)<12){noi+=Math.abs(L[j]-a);cnt++}}
+  lap/=n;noi=cnt?noi/cnt:0;sat=sat/n*100;
+  const cols=Object.entries(q).sort((a,b)=>b[1]-a[1]).slice(0,6).map(([k,c])=>{const[a,b,e]=k.split(',').map(z=>z*32+16);return{rgb:`rgb(${a},${b},${e})`,pc:c/n*100}});
+  A={mean,std,sat,lap,noi,sh:sh/n*100,hi:hi/n*100,hist};
+  const tips=[];let sc=100;
+  if(mean<95){tips.push('Image is dark: raise brightness.');sc-=12}else if(mean>170){tips.push('Image is bright: lower brightness to recover detail.');sc-=10}
+  if(std<48){tips.push('Low contrast: boost contrast.');sc-=12}
+  if(sat<22){tips.push('Colors look dull: add saturation.');sc-=8}else if(sat>70){tips.push('Colors are very vivid: consider reducing saturation.');sc-=5}
+  if(lap<60){tips.push('Soft or blurry: apply sharpness and ultra detail.');sc-=18}
+  if(noi>2.6){tips.push('Noticeable grain/noise: apply denoise.');sc-=12}
+  if(A.sh>8){tips.push('Crushed shadows ('+A.sh.toFixed(1)+'%).');sc-=6}if(A.hi>6){tips.push('Clipped highlights ('+A.hi.toFixed(1)+'%).');sc-=6}
+  if(img.naturalWidth<1920){tips.push('Low resolution: use 4K upscale.');sc-=8}
+  if(!tips.length)tips.push('Image is in good shape. Light sharpening is enough.');
+  A.sc=clamp(sc,20,100);A.tips=tips;
+  const mp=img.naturalWidth*img.naturalHeight/1e6,gr=A.sc>=80?'Excellent':A.sc>=60?'Good':'Needs work';
+  $('an').innerHTML=`<div class="row"><div class="score" style="color:${A.sc>=80?'var(--ok)':'var(--wa)'}">${A.sc}</div><div>Quality score<br><b>${gr}</b></div></div>
+  <div class="grid"><div class="m"><small>Resolution</small><b>${img.naturalWidth}×${img.naturalHeight}</b></div><div class="m"><small>Megapixels</small><b>${mp.toFixed(1)} MP</b></div>
+  <div class="m"><small>File size</small><b>${(fsize/1024).toFixed(0)} KB</b></div><div class="m"><small>Aspect</small><b>${(img.naturalWidth/img.naturalHeight).toFixed(2)}:1</b></div>
+  <div class="m"><small>Brightness</small><b>${mean.toFixed(0)}/255</b></div><div class="m"><small>Contrast</small><b>${std.toFixed(0)}</b></div>
+  <div class="m"><small>Saturation</small><b>${sat.toFixed(0)}%</b></div><div class="m"><small>Sharpness</small><b>${lap.toFixed(0)}</b></div>
+  <div class="m"><small>Noise level</small><b>${noi.toFixed(1)}</b></div><div class="m"><small>Shadow/highlight clip</small><b>${A.sh.toFixed(1)}/${A.hi.toFixed(1)}%</b></div></div>
+  <canvas id="hc" width="300" height="70" style="width:100%;margin-top:8px;border-radius:8px;background:var(--bg)"></canvas>
+  <div style="margin:6px 0">${cols.map(c=>`<span class="sw" style="background:${c.rgb}" title="${c.pc.toFixed(1)}%"></span>`).join('')}<small style="color:var(--mut)">dominant colors</small></div>
+  <b>Recommendations</b><ul>${tips.map(t=>`<li>${t}</li>`).join('')}</ul>`;
+  const hc=$('hc').getContext('2d'),mxh=Math.max(...hist);hc.fillStyle='#8484ff';for(let i=0;i<256;i++){const hh=hist[i]/mxh*68;hc.fillRect(i*300/256,70-hh,1.3,hh)}
+  pr.innerHTML='';autoEnhance()},350)}
+function autoEnhance(){if(!A)return;setP({bri:Math.round(clamp((118-A.mean)*.35,-25,30)),con:A.std<55?Math.round(clamp((60-A.std)*.9,5,35)):0,sat:A.sat<30?Math.round(clamp(30-A.sat,5,30)):A.sat>70?-8:5,
+ warm:0,sharp:A.lap<100?55:30,clar:35,dn:A.noi>2.6?Math.round(clamp(A.noi*12,20,70)):A.noi>1.8?20:0})}
+$('auto').onclick=autoEnhance;
+// export
+function full(){const rv=$('res').value,lw=img.naturalWidth,lh=img.naturalHeight;let k=rv==='4k'?3840/Math.max(lw,lh):+rv;if(rv==='4k'&&k<1)k=1;
+ const w=Math.round(lw*k),h=Math.round(lh*k);return render(w,h,P,$('ultra').checked,Math.max(1,k))}
+function busy(on,txt){$('prog').style.display=on?'block':'none';$('prog').firstChild.style.width=on?'60%':'0';$('msg').textContent=txt||''}
+function run(fn){if(!img)return;busy(true,'Processing at full quality…');setTimeout(()=>{try{fn(full())}catch(e){$('msg').textContent='Processing failed (image too large for this device). Try a smaller size.'}busy(false,$('msg').textContent==='Processing at full quality…'?'':$('msg').textContent)},60)}
+const ext=()=>({'image/png':'png','image/jpeg':'jpg','image/webp':'webp'}[$('fmt').value]);
+$('dl').onclick=()=>run(c=>c.toBlob(b=>{const u=URL.createObjectURL(b),a=document.createElement('a');a.href=u;a.download=`${name}-enhanced.${ext()}`;a.click();
+ $('mi').src=u;$('msg').textContent=`Done: ${c.width}×${c.height}px. If no download started, use “Preview full result” and right-click / long-press to save.`},$('fmt').value,.95));
+$('pv').onclick=()=>run(c=>c.toBlob(b=>{$('mi').src=URL.createObjectURL(b);$('modal').style.display='grid';busy(false,`${c.width}×${c.height}px`)},$('fmt').value,.95));
+$('modal').onclick=()=>$('modal').style.display='none';
+// history
+function hist(){return ls('enh_hist')||[]}
+function showHist(){const h=hist();$('hist').innerHTML=h.length?h.map((x,i)=>`<div><img src="${x.th}"><span>${x.n}<br>Score ${x.sc} · ${x.d}<br><a href="#h${i}" data-l="${i}">Apply settings</a> · <a href="#h${i}" data-x="${i}">Delete</a></span></div>`).join(''):'<small style="color:var(--mut)">Nothing saved yet.</small>'}
+$('hist').onclick=e=>{const a=e.target.closest('a');if(!a)return;e.preventDefault();const h=hist();if(a.dataset.x!==undefined){h.splice(+a.dataset.x,1);ls('enh_hist',h);showHist()}else if(img)setP(h[+a.dataset.l].p)};
+$('sv').onclick=()=>{if(!img)return;const c=render(320,Math.round(320*img.naturalHeight/img.naturalWidth),P,false,1),h=hist();
+ h.unshift({n:name.slice(0,18),sc:A?A.sc:0,d:new Date().toLocaleDateString(),p:{...P},th:c.toDataURL('image/jpeg',.7)});
+ if(h.length>12)h.length=12;$('msg').textContent=ls('enh_hist',h)?'Saved to local history.':'Could not save (browser storage unavailable or full).';showHist()};
+$('clr').onclick=()=>{ls('enh_hist',[]);showHist()};
+showHist();
+</script></body></html>
